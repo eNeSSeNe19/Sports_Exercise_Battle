@@ -8,10 +8,9 @@ namespace Sports_Exercise_Battle.Models.Entries
 {
     public class PushUpEntry
     {
+        public string Username { get; set; }
         public int Count { get; set; }
-        public TimeSpan Duration { get; set; }
-        //public DateTime EntryTime { get; set; }
-
-       
+        public int Duration { get; set; }
+        public DateTime EntryTime { get; set; }
     }
 }

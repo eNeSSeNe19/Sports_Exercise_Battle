@@ -10,32 +10,34 @@ CREATE TABLE "User" (
     image TEXT
 );
 
+CREATE TABLE Tournaments (
+    tournament_id SERIAL PRIMARY KEY,
+    start_time TIMESTAMP NOT NULL,
+	end_time TIMESTAMP NOT NULL
+);
+
 CREATE TABLE UserStats (
     username VARCHAR(255) PRIMARY KEY,
     elo INT DEFAULT 100,
     wins INT DEFAULT 0,
     losses INT DEFAULT 0,
     draws INT DEFAULT 0,
-    count INT NOT NULL,
+    counts INT DEFAULT 0,
     CONSTRAINT fk_userstats_user FOREIGN KEY (username)
-    REFERENCES "User" (username)
+        REFERENCES "User" (username)
 );
 
 CREATE TABLE PushUpHistory (
     history_id SERIAL PRIMARY KEY,
     username VARCHAR(255) NOT NULL,
-    count INT NOT NULL,
-    duration INTERVAL NOT NULL,
+    counts INT NOT NULL,
+    duration INT NOT NULL,
     exercise_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    tournament_id INT, 
     CONSTRAINT fk_pushuphistory_user FOREIGN KEY (username)
-    REFERENCES "User" (username)
-);
-
-CREATE TABLE Tournaments (
-    tournament_id SERIAL PRIMARY KEY,
-    start_time TIMESTAMP NOT NULL,
-    end_time TIMESTAMP,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE
+        REFERENCES "User" (username),
+    CONSTRAINT fk_pushuphistory_tournament FOREIGN KEY (tournament_id)
+        REFERENCES Tournaments (tournament_id)
 );
 
 CREATE TABLE TournamentEntries (
@@ -44,9 +46,9 @@ CREATE TABLE TournamentEntries (
     username VARCHAR(255) NOT NULL,
     push_up_count INT NOT NULL,
     CONSTRAINT fk_tournamententries_tournaments FOREIGN KEY (tournament_id)
-    REFERENCES Tournaments (tournament_id),
+        REFERENCES Tournaments (tournament_id),
     CONSTRAINT fk_tournamententries_user FOREIGN KEY (username)
-    REFERENCES "User" (username)
+        REFERENCES "User" (username)
 );
 
 CREATE TABLE TournamentResults (
@@ -56,8 +58,7 @@ CREATE TABLE TournamentResults (
     result_position INT,
     elo_change INT,
     CONSTRAINT fk_tournamentresults_tournaments FOREIGN KEY (tournament_id)
-    REFERENCES Tournaments (tournament_id),
+        REFERENCES Tournaments (tournament_id),
     CONSTRAINT fk_tournamentresults_user FOREIGN KEY (username)
-    REFERENCES "User" (username)
+        REFERENCES "User" (username)
 );
-

@@ -1,2 +1,1 @@
-Handlerequests IF STATEMENTS EINSTELEN
-HOW TO PASS A USER WITHOUT ITS PARAMETERS IN GETUSERBYID()?
+Tournaments end checken. tournaments info anzeigen. Userstats aktualiesieren. Wer gewonnen/verloren hat logik schreiben.

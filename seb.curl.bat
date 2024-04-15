@@ -68,7 +68,7 @@ REM --------------------------------------------------
 echo 4) stats (get my elo value and count of pushups overall; startup value e.g. 100)
 curl -X GET http://localhost:10001/stats --header "Authorization: Basic kienboec-sebToken"
 echo.
-curl -X GET http://localhost:10001/stats --header "Authorization: Basic altenhof-sebToken"
+curl -X GET http://localhost:10001/stats --header "Authorization: Basic altenhof-sebToken" 
 echo.
 echo.
 
@@ -96,9 +96,9 @@ echo.
 
 REM --------------------------------------------------
 echo 8) add entry to history / starts a tournament
-curl -X POST http://localhost:10001/history --header "Content-Type: application/json" --header "Authorization: Basic kienboec-sebToken" -d "{\"Name\": \"PushUps\",  \"Count\": 40, \"DurationInSeconds\": 60}"
+curl -X POST http://localhost:10001/history --header "Content-Type: application/json" --header "Authorization: Basic kienboec-sebToken" -d "{\"Username\": \"kienboec\",  \"Count\": 40, \"DurationInSeconds\": 60}"
 echo.
-curl -X POST http://localhost:10001/history --header "Content-Type: application/json" --header "Authorization: Basic altenhof-sebToken" -d "{\"Name\": \"PushUps\",  \"Count\": 50, \"DurationInSeconds\": 70}"
+curl -X POST http://localhost:10001/history --header "Content-Type: application/json" --header "Authorization: Basic altenhof-sebToken" -d "{\"Username\": \"altenhof\",  \"Count\": 50, \"DurationInSeconds\": 70}"
 echo.
 echo.
 
@@ -106,7 +106,7 @@ REM --------------------------------------------------
 echo 9) list current tournament info/state (tournament started; 2 participants; altenhof in front; write start-time)
 curl -X GET http://localhost:10001/tournament --header "Authorization: Basic kienboec-sebToken"
 echo.
-curl -X GET http://localhost:10001/tournament --header "Authorization: Basic altenhof-sebToken"
+
 echo.
 echo.
 
@@ -134,7 +134,7 @@ echo.
 
 REM --------------------------------------------------
 echo 13) add entry to history / continues in tournament
-curl -X POST http://localhost:10001/history --header "Content-Type: application/json" --header "Authorization: Basic kienboec-sebToken" -d "{\"Name\": \"PushUps\",  \"Count\": 11, \"DurationInSeconds\": 25}"
+curl -X POST http://localhost:10001/history --header "Content-Type: application/json" --header "Authorization: Basic kienboec-sebToken" -d "{\"Username\": \"kienboec\",  \"Count\": 11, \"DurationInSeconds\": 25}"
 echo.
 echo.
 
@@ -142,7 +142,7 @@ REM --------------------------------------------------
 echo 14) list current tournament info/state 
 curl -X GET http://localhost:10001/tournament --header "Authorization: Basic kienboec-sebToken"
 echo.
-curl -X GET http://localhost:10001/tournament --header "Authorization: Basic altenhof-sebToken"
+
 echo.
 echo.
 
@@ -156,7 +156,7 @@ REM --------------------------------------------------
 echo 16) list current tournament info/state (1 tournament with state ended)
 curl -X GET http://localhost:10001/tournament --header "Authorization: Basic kienboec-sebToken"
 echo.
-curl -X GET http://localhost:10001/tournament --header "Authorization: Basic altenhof-sebToken"
+
 echo.
 echo.
 

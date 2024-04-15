@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Sports_Exercise_Battle.Database;
+using Sports_Exercise_Battle.Models.Entries;
 
 namespace Sports_Exercise_Battle.Server.SEB
 {
@@ -18,7 +19,7 @@ namespace Sports_Exercise_Battle.Server.SEB
         {
             if (rq.Headers.ContainsKey("Authorization"))
             {
-                db.Token = rq.Headers["Authorization"].Split(' ')[1]; // deleting Basic
+                db.Token = rq.Headers["Authorization"].Split(' ')[1]; // deleting Basic from curl
             }
             else
             {
@@ -28,7 +29,7 @@ namespace Sports_Exercise_Battle.Server.SEB
             {
                 if (rq.Path[1] == "users")
                 {
-                    if (rq.Path.Length == 2 || (rq.Path.Length > 2 && string.IsNullOrWhiteSpace(rq.Path[2]))) // was passiert wenns garnicht existiert? -> not empty or no whitespace?  
+                    if (rq.Path.Length == 2 || (rq.Path.Length > 2 && string.IsNullOrWhiteSpace(rq.Path[2])))
                     {
                         CreateUser(rq, rs);
 
@@ -39,6 +40,13 @@ namespace Sports_Exercise_Battle.Server.SEB
                     if (rq.Path.Length == 2 || (rq.Path.Length > 2 && string.IsNullOrWhiteSpace(rq.Path[2])))
                     {
                         LoginUser(rq, rs);
+                    }
+                }
+                else if (rq.Path[1] == "history")
+                {
+                    if (rq.Path.Length == 2 || (rq.Path.Length > 2 && string.IsNullOrWhiteSpace(rq.Path[2])))
+                    {
+                        InsertNewPushUpEntry(rq, rs);
                     }
                 }
                 return true;
@@ -62,7 +70,51 @@ namespace Sports_Exercise_Battle.Server.SEB
                         }
                     }
                 }
-                
+                else if (rq.Path[1] == "stats")
+                {
+                    if (db.AuthorizeToken())
+                    {
+                        if (rq.Path.Length == 2 || (rq.Path.Length > 2 && string.IsNullOrWhiteSpace(rq.Path[2])))
+                        {
+                            GetUserStats(rq, rs);
+                        }
+                    }
+                }
+                else if (rq.Path[1] == "score")
+                {
+                    if (db.AuthorizeToken())
+                    {
+                        if (rq.Path.Length == 2 || (rq.Path.Length > 2 && string.IsNullOrWhiteSpace(rq.Path[2])))
+                        {
+                            GetUserScoreboard(rq, rs);
+                        }
+                    }
+                }
+                else if (rq.Path[1] == "history")
+                {
+                    if (db.AuthorizeToken())
+                    {
+                        if (rq.Path.Length == 2 || (rq.Path.Length > 2 && string.IsNullOrWhiteSpace(rq.Path[2])))
+                        {
+                            GetUserHistory(rq, rs);
+                        }
+                        
+
+                    }
+                }
+                else if (rq.Path[1] == "tournament")
+                {
+                    if (db.AuthorizeToken())
+                    {
+                        if (rq.Path.Length == 2 || (rq.Path.Length > 2 && string.IsNullOrWhiteSpace(rq.Path[2])))
+                        {
+                            GetTournaments(rq, rs);
+                        }
+                       
+
+                    }
+                }
+
                 return true;
             }
             else if (rq.Method == HttpMethod.PUT)
@@ -71,7 +123,7 @@ namespace Sports_Exercise_Battle.Server.SEB
                 {
                     if (db.AuthorizeToken())
                     {
-                        
+
                         if (rq.Path.Length > 2 && (!string.IsNullOrWhiteSpace(rq.Path[2]) && (rq.Path[2] == db.AuthorizedUser)))
                         {
                             UpdateUser(rq, rs);
@@ -84,7 +136,7 @@ namespace Sports_Exercise_Battle.Server.SEB
                             rs.Headers.Add("Content-Type", "application/json");
                         }
                     }
-                        
+
 
                 }
                 return true;
@@ -103,7 +155,6 @@ namespace Sports_Exercise_Battle.Server.SEB
                     throw new Exception("Invalid user credentials.");
                 }
 
-                // TODO: Add logic to interact with the database to save the user
                 db.RegisterUser(user);
 
 
@@ -125,7 +176,7 @@ namespace Sports_Exercise_Battle.Server.SEB
             try
             {
                 var user = JsonSerializer.Deserialize<User>(rq.Content ?? "");
-                if(user != null &&string.IsNullOrWhiteSpace(user.Username) && rq.Path.Length > 1 && !string.IsNullOrWhiteSpace(rq.Path[2]))
+                if (user != null && string.IsNullOrWhiteSpace(user.Username) && rq.Path.Length > 1 && !string.IsNullOrWhiteSpace(rq.Path[2]))
                 {
                     user.Username = rq.Path[2];
                 }
@@ -134,7 +185,6 @@ namespace Sports_Exercise_Battle.Server.SEB
                     throw new Exception("Invalid user data.");
                 }
 
-                // TODO: Add logic to interact with the database to save the user
                 db.UpdateUser(user);
 
 
@@ -161,7 +211,6 @@ namespace Sports_Exercise_Battle.Server.SEB
                     throw new Exception("Invalid user data.");
                 }
 
-                // TODO: Add logic to interact with the database to save the user
                 db.LoginUser(user.Username, user.Password);
 
 
@@ -178,32 +227,34 @@ namespace Sports_Exercise_Battle.Server.SEB
             }
         }
 
-        public void GetUsers(HttpRequest rq, HttpResponse rs)
+        public void InsertNewPushUpEntry(HttpRequest rq, HttpResponse rs)
         {
-            // TODO: Add logic to retrieve users from the database
-            // The data returned should exclude sensitive information like passwords
-
-            //var users = new List<User>();
-
-
-            //rs.Content = JsonSerializer.Serialize(users);
-            //rs.Headers.Add("Content-Type", "application/json");
-
-
             try
             {
-                //var user = JsonSerializer.Deserialize<User>(rq.Content ?? "");
-                //if (user == null || string.IsNullOrWhiteSpace(user.Username) || string.IsNullOrWhiteSpace(user.Password))
-                //{
-                //    throw new Exception("Invalid user data.");
-                //}
-
-                // TODO: Add logic to interact with the database to save the user
-                db.GetUserByID(rq.Path[2]);
+                var entry = JsonSerializer.Deserialize<PushUpEntry>(rq.Content ?? "");
+                db.InsertNewPushUpEntry(entry);
 
 
                 rs.ResponseCode = 201;
-                rs.ResponseMessage = "Found!";
+                rs.ResponseMessage = "Entry successfull!";
+                rs.Content = JsonSerializer.Serialize(new { message = "Entry inserted successfully!" });
+                rs.Headers.Add("Content-Type", "application/json");
+            }
+            catch (Exception ex)
+            {
+                rs.ResponseCode = 400;
+                rs.Content = $"Failed to insert entry: {ex.Message}";
+                rs.Headers.Add("Content-Type", "application/json");
+            }
+        }
+
+        public void GetUsers(HttpRequest rq, HttpResponse rs)
+        {
+            try
+            {
+                db.GetUserByID(rq.Path[2]);
+                rs.ResponseCode = 201;
+                rs.ResponseMessage = "Found User!";
                 rs.Content = JsonSerializer.Serialize(new { message = "User found successfully!" });
                 rs.Headers.Add("Content-Type", "application/json");
             }
@@ -215,6 +266,101 @@ namespace Sports_Exercise_Battle.Server.SEB
             }
         }
 
-        //bool
+        public void GetUserStats(HttpRequest rq, HttpResponse rs)
+        {
+            try
+            {
+                var userStats = db.GetUserStats();
+                rs.ResponseCode = 201;
+                rs.ResponseMessage = "UserStats found successfully!";
+                rs.Content = JsonSerializer.Serialize(new { message = "UserStats from " + userStats?.Username + ": Elo: " + userStats?.Elo + " TotalCounts: " + userStats?.Counts });
+                rs.Headers.Add("Content-Type", "application/json");
+            }
+            catch (Exception ex)
+            {
+                rs.ResponseCode = 400;
+                rs.Content = $"No such UserStats!: {ex.Message}";
+                rs.Headers.Add("Content-Type", "application/json");
+            }
+        }
+
+        public void GetUserScoreboard(HttpRequest rq, HttpResponse rs)
+        {
+            try
+            {
+                if (db.Token == null)
+                {
+                    return;
+                }
+                var userStats = db.GetUserScoreboard(); //db.Token
+                rs.ResponseCode = 201;
+                rs.ResponseMessage = "UserStats found successfully!";
+                rs.Content = userStats;
+                rs.Headers.Add("Content-Type", "application/json");
+            }
+            catch (Exception ex)
+            {
+                rs.ResponseCode = 400;
+                rs.Content = $"No such UserStats!: {ex.Message}";
+                rs.Headers.Add("Content-Type", "application/json");
+            }
+        }
+
+        public void GetUserHistory(HttpRequest rq, HttpResponse rs)
+        {
+            try
+            {
+                var history = db.GetUserPushUpHistory();
+                if (!string.IsNullOrWhiteSpace(history) && history != "[]")
+                {
+                    rs.ResponseCode = 201;
+                    rs.ResponseMessage = "PushUp History found successfully!";
+                    rs.Content = history;
+                    rs.Headers.Add("Content-Type", "application/json");
+                }
+                else 
+                {
+                    rs.ResponseCode = 400;
+                    rs.Content = $"No such History!";
+                    rs.Headers.Add("Content-Type", "application/json");
+                }
+            }
+            catch (Exception ex)
+            {
+                rs.ResponseCode = 400;
+                rs.Content = $"No such History!: {ex.Message}";
+                rs.Headers.Add("Content-Type", "application/json");
+            }
+        }
+
+        public void GetTournaments(HttpRequest rq, HttpResponse rs)
+        {
+            try
+            {
+                var tournaments = db.GetAllTournaments(); //probably because there are 2 GETS in the curl for tournaments
+                if (tournaments.Count > 0)
+                {
+                    rs.ResponseCode = 201;
+                    rs.ResponseMessage = "Tournaments found successfully!";
+                    string tournamentMessage = String.Join(", ", tournaments.Select(x => $"Tournament {x.TournamentId} started at {x.StartTime} Status: Participants: Counts: ").ToArray()); //empty stuffs have to be corrected/added
+                    rs.Content = tournamentMessage;
+                    rs.Headers.Add("Content-Type", "application/json");
+                }
+                else
+                {
+                    rs.ResponseCode = 400;
+                    rs.Content = $"No Tournaments found!";
+                    rs.Headers.Add("Content-Type", "application/json");
+                }
+            }
+            catch (Exception ex)
+            {
+                rs.ResponseCode = 400;
+                rs.Content = $"No tournaments found!: {ex.Message}";
+                rs.Headers.Add("Content-Type", "application/json");
+            }
+        }
+
+    }
 }
-}
+

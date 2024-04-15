@@ -13,5 +13,6 @@ namespace Sports_Exercise_Battle.Models.Users
         public int Wins { get; set; }
         public int Losses { get; set; }
         public int Draws { get; set; }
+        public int Counts { get; internal set; }
     }
 }
