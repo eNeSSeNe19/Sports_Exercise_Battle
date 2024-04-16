@@ -14,18 +14,16 @@ namespace Sports_Exercise_Battle.Models.Users
         public string Name { get; set; }
         public string Bio { get; set; }
         public string Image { get; set; }
-        //public string Token { get; set; }
 
         public List<Tournament> PushUpHistory { get; set; }
 
-        public User(string username, string password = "", string name = "", string bio = "", string image = "") //, string token = ""
+        public User(string username, string password = "", string name = "", string bio = "", string image = "") 
         {
             Username = username;
             Password = password;
             Name = name;
             Bio = bio;
             Image = image;
-            //Token = token;
             PushUpHistory = new List<Tournament>() { };
         }
 

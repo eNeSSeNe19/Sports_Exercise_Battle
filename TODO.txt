@@ -1,1 +1,10 @@
-Tournaments end checken. tournaments info anzeigen. Userstats aktualiesieren. Wer gewonnen/verloren hat logik schreiben.
+BOUNDARIES FESTLEGEN (bsp. was passiert wenn es 3 teilnehmer oder nur 1 gibt?)
+
+PARTICIPANTS und COUNTS in Tournament info anzeigen
+
+LOG besser machen(optisch) (HISTORY, SCOREBOARD) ("message": format überall machen)
+
+server schauen wie log dort ist
+
+UNITTESTS schreiben
+

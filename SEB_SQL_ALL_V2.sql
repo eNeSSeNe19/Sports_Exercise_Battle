@@ -13,7 +13,8 @@ CREATE TABLE "User" (
 CREATE TABLE Tournaments (
     tournament_id SERIAL PRIMARY KEY,
     start_time TIMESTAMP NOT NULL,
-	end_time TIMESTAMP NOT NULL
+	end_time TIMESTAMP NOT NULL,
+	is_calculated BOOL DEFAULT FALSE
 );
 
 CREATE TABLE UserStats (
@@ -40,25 +41,6 @@ CREATE TABLE PushUpHistory (
         REFERENCES Tournaments (tournament_id)
 );
 
-CREATE TABLE TournamentEntries (
-    entry_id SERIAL PRIMARY KEY,
-    tournament_id INT NOT NULL,
-    username VARCHAR(255) NOT NULL,
-    push_up_count INT NOT NULL,
-    CONSTRAINT fk_tournamententries_tournaments FOREIGN KEY (tournament_id)
-        REFERENCES Tournaments (tournament_id),
-    CONSTRAINT fk_tournamententries_user FOREIGN KEY (username)
-        REFERENCES "User" (username)
-);
 
-CREATE TABLE TournamentResults (
-    result_id SERIAL PRIMARY KEY,
-    tournament_id INT NOT NULL,
-    username VARCHAR(255) NOT NULL,
-    result_position INT,
-    elo_change INT,
-    CONSTRAINT fk_tournamentresults_tournaments FOREIGN KEY (tournament_id)
-        REFERENCES Tournaments (tournament_id),
-    CONSTRAINT fk_tournamentresults_user FOREIGN KEY (username)
-        REFERENCES "User" (username)
-);
+
+

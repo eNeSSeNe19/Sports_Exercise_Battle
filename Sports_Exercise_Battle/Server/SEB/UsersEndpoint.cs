@@ -337,12 +337,12 @@ namespace Sports_Exercise_Battle.Server.SEB
         {
             try
             {
-                var tournaments = db.GetAllTournaments(); //probably because there are 2 GETS in the curl for tournaments
+                var tournaments = db.GetAllTournaments(); //probably because there are 2 GETS in the curl for tournaments // deleted one
                 if (tournaments.Count > 0)
                 {
                     rs.ResponseCode = 201;
                     rs.ResponseMessage = "Tournaments found successfully!";
-                    string tournamentMessage = String.Join(", ", tournaments.Select(x => $"Tournament {x.TournamentId} started at {x.StartTime} Status: Participants: Counts: ").ToArray()); //empty stuffs have to be corrected/added
+                    string tournamentMessage = String.Join(", ", tournaments.Select(x => $"Tournament {x.TournamentId} started at {x.StartTime} State: {x.State} Participants: Counts: ").ToArray()); //empty stuffs have to be corrected/added
                     rs.Content = tournamentMessage;
                     rs.Headers.Add("Content-Type", "application/json");
                 }

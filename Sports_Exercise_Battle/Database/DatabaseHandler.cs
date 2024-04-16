@@ -15,6 +15,7 @@ using System.Xml.Linq;
 using Sports_Exercise_Battle.Models.Entries;
 using System.Collections;
 using Npgsql.TypeMapping;
+using System.Diagnostics.Metrics;
 
 
 namespace Sports_Exercise_Battle.Database
@@ -95,10 +96,6 @@ namespace Sports_Exercise_Battle.Database
                         if (dr.Read())
                         {
                             User user = new User((string)dr[0], "", (string)dr[1], (string)dr[2], (string)dr[3]);
-                            //user.Username = (string)dr[0];
-                            //user.Name = (string)dr[1];
-                            //user.Bio = (string)dr[2];
-                            //user.Image = (string)dr[3];
                             dr.Close();
                             return user;
                         }
@@ -112,7 +109,6 @@ namespace Sports_Exercise_Battle.Database
                     {
                         Console.WriteLine(e.Message);
                         throw new Exception("No User found!");
-                        //return 1;
                     }
 
 
@@ -216,21 +212,6 @@ namespace Sports_Exercise_Battle.Database
             }
         }
 
-        private string GetRandomSalt(int length) //Needed for Hashing
-        {
-            StringBuilder sb = new StringBuilder();
-            Random rand = new Random();
-            char letter;
-
-            for (int i = 0; i < length; i++)
-            {
-                double flt = rand.NextDouble();
-                int shift = Convert.ToInt32(Math.Floor(25 * flt));
-                letter = Convert.ToChar(shift + 65);
-                sb.Append(letter);
-            }
-            return sb.ToString();
-        }
         public string? LoginUser(string username, string password)
         {
 
@@ -256,8 +237,6 @@ namespace Sports_Exercise_Battle.Database
                         if (password == (string)dr[0])
                         {
                             Console.WriteLine("Login successful");
-                            string usernameWithSalt = username + GetRandomSalt(5);
-
                             string token = username + "-sebToken";
                             dr.Close();
                             InsertNewToken(username, token);
@@ -328,8 +307,6 @@ namespace Sports_Exercise_Battle.Database
             }
         }
 
-
-
         public void UpdateUserStats(UserStats stats)
         {
             lock (padlock)
@@ -382,7 +359,6 @@ namespace Sports_Exercise_Battle.Database
                 cmd.Prepare();
                 cmd.Parameters["p1"].Value = token;
                 NpgsqlDataReader dr = cmd.ExecuteReader();
-                string username;
                 if (dr.Read())
                 {
                     User user = new User((string)dr[0], (string)dr[1], (string)dr[2], (string)dr[3], (string)dr[4]);
@@ -415,7 +391,7 @@ namespace Sports_Exercise_Battle.Database
                         if (string.IsNullOrWhiteSpace(username))
                             return null;
 
-                        NpgsqlCommand cmd = new NpgsqlCommand("SELECT username, elo, counts FROM public.\"userstats\" WHERE username = @p1;", connection); //add more stats if needed
+                        NpgsqlCommand cmd = new NpgsqlCommand("SELECT username, elo, wins, losses, draws, counts FROM public.\"userstats\" WHERE username = @p1;", connection); //add more stats if needed
                         cmd.Parameters.Add(new NpgsqlParameter("p1", DbType.String));
                         cmd.Prepare();
                         cmd.Parameters["p1"].Value = username;
@@ -425,7 +401,61 @@ namespace Sports_Exercise_Battle.Database
                         {
                             userStats.Username = (string)dr[0];
                             userStats.Elo = (int)dr[1];
-                            userStats.Counts = (int)dr[2];
+                            userStats.Wins = (int)dr[2];
+                            userStats.Losses = (int)dr[3];
+                            userStats.Draws = (int)dr[4];
+                            userStats.Counts = (int)dr[5];
+                            dr.Close();
+                            return userStats;
+                        }
+                        else
+                        {
+                            dr.Close();
+                            return null;
+                        }
+                    }
+                    catch (PostgresException e)
+                    {
+                        Console.WriteLine(e.Message);
+                        throw new Exception("No User found!");
+                    }
+
+                }
+                else
+                {
+                    Console.WriteLine("Database not connected!");
+                    return null;
+                }
+            }
+        }
+
+        public UserStats? GetUserStatsByUsername(string Username)
+        {
+            lock (padlock)
+            {
+                if (connection != null && Token != null)
+                {
+                    try
+                    {
+                        string username = Username;
+
+                        if (string.IsNullOrWhiteSpace(username))
+                            return null;
+
+                        NpgsqlCommand cmd = new NpgsqlCommand("SELECT username, elo, wins, losses, draws, counts FROM public.\"userstats\" WHERE username = @p1;", connection); 
+                        cmd.Parameters.Add(new NpgsqlParameter("p1", DbType.String));
+                        cmd.Prepare();
+                        cmd.Parameters["p1"].Value = username;
+                        NpgsqlDataReader dr = cmd.ExecuteReader();
+                        UserStats userStats = new UserStats();
+                        if (dr.Read())
+                        {
+                            userStats.Username = (string)dr[0];
+                            userStats.Elo = (int)dr[1];
+                            userStats.Wins = (int)dr[2];
+                            userStats.Losses = (int)dr[3];
+                            userStats.Draws = (int)dr[4];
+                            userStats.Counts = (int)dr[5];
                             dr.Close();
                             return userStats;
                         }
@@ -499,86 +529,7 @@ namespace Sports_Exercise_Battle.Database
             }
         }
 
-        //public string GetUserPushUpHistory()
-        //{
-        //    lock (padlock)
-        //    {
-        //        if (connection != null && Token != null)
-        //        {
-        //            try
-        //            {
-        //                NpgsqlCommand cmd = new NpgsqlCommand("SELECT username FROM public.\"User\" WHERE token = @p1;", connection);// to get the username to work with
-        //                cmd.Parameters.Add(new NpgsqlParameter("p1", DbType.String));
-        //                cmd.Prepare();
-        //                cmd.Parameters["p1"].Value = Token;
-        //                NpgsqlDataReader dr = cmd.ExecuteReader(); //GETUSERBYTOKEN HERE?
-        //                string username;
-        //                if (dr.Read())
-        //                {
-        //                    username = (string)dr[0];
-        //                    dr.Close();
-        //                }
-        //                else
-        //                {
-        //                    dr.Close();
-        //                    return null;
-        //                }
-
-        //                if (string.IsNullOrWhiteSpace(username))
-        //                {
-        //                    return null;
-
-        //                }
-
-        //                NpgsqlCommand cmd2 = new NpgsqlCommand("SELECT counts, exercise_date, duration FROM public.\"pushuphistory\" WHERE username = @p1;", connection);
-        //                cmd2.Parameters.Add(new NpgsqlParameter("p1", DbType.String));
-        //                cmd2.Prepare();
-        //                cmd2.Parameters["p1"].Value = username;
-        //                cmd2.ExecuteNonQuery();
-        //                NpgsqlDataReader dr2 = cmd2.ExecuteReader();
-        //                List<PushUpEntry> history = new List<PushUpEntry>();
-        //                while (dr2.Read())
-        //                {
-        //                    PushUpEntry entry = new PushUpEntry();
-        //                    entry.Username = username;
-        //                    entry.Count = (int)dr[0];
-        //                    entry.EntryTime = (DateTime)dr[2];
-        //                    entry.Duration = (int)dr[3];
-
-        //                    history.Add(entry);
-
-        //                }
-        //                dr2.Close();
-
-        //                if (history.Count > 0)
-        //                {
-        //                    string json = System.Text.Json.JsonSerializer.Serialize(new
-        //                    {
-        //                        histories = history
-        //                    });
-        //                    return json;
-        //                }
-        //                else
-        //                {
-        //                    Console.WriteLine("Empty history");
-        //                    return null;
-        //                }
-
-        //            }
-        //            catch (PostgresException e)
-        //            {
-        //                Console.WriteLine(e.Message);
-        //                throw new Exception("History not found!");
-        //            }
-
-        //        }
-        //        else
-        //        {
-        //            Console.WriteLine("Database not connected!");
-        //            return null;
-        //        }
-        //    }
-        //}
+  
 
         public string GetUserPushUpHistory()
         {
@@ -586,7 +537,7 @@ namespace Sports_Exercise_Battle.Database
             {
                 if (connection != null && Token != null)
                 {
-                    string username = GetUserByToken(Token).Username; // This method should return the username or null
+                    string username = GetUserByToken(Token).Username; 
                     if (string.IsNullOrWhiteSpace(username))
                     {
                         return null;
@@ -625,50 +576,6 @@ namespace Sports_Exercise_Battle.Database
             }
         }
 
-
-        //public void InsertNewPushUpEntry(PushUpEntry entry)
-        //{
-        //    lock (padlock)
-        //    {
-        //        if (Token == null)
-        //        {
-        //            return;
-        //        }
-
-        //        //var user = GetUserByToken(Token);
-        //        var lastActiveTournament = GetLastActiveTournament();
-
-        //        if (lastActiveTournament == null)
-        //        {
-        //            InsertNewTournament();
-        //        }
-        //        lastActiveTournament = GetLastActiveTournament();
-
-        //        try
-        //        {
-        //            NpgsqlCommand cmd = new NpgsqlCommand("INSERT INTO public.pushuphistory(username, counts, duration,  exercise_date, tournament_id) VALUES(@p1, @p2, @p3, @p4, @p5);", connection);
-        //            cmd.Parameters.Add(new NpgsqlParameter("p1", DbType.String));
-        //            cmd.Parameters.Add(new NpgsqlParameter("p2", DbType.Int64));
-        //            cmd.Parameters.Add(new NpgsqlParameter("p3", DbType.Int64));
-        //            cmd.Parameters.Add(new NpgsqlParameter("p4", DbType.DateTime));
-        //            cmd.Parameters.Add(new NpgsqlParameter("p5", DbType.Int64));
-        //            cmd.Prepare();
-        //            cmd.Parameters["p1"].Value = entry.Username;
-        //            cmd.Parameters["p2"].Value = entry.Count;
-        //            cmd.Parameters["p3"].Value = entry.Duration;
-        //            cmd.Parameters["p4"].Value = DateTime.Now.ToUniversalTime();
-        //            cmd.Parameters["p5"].Value = lastActiveTournament.TournamentId;
-        //            cmd.ExecuteNonQuery();
-
-
-        //        }
-        //        catch (PostgresException ex)
-        //        {
-        //            throw new Exception("InsertNewPushUpEntry: ", ex);
-        //        }
-        //    }
-        //}
-
         public void InsertNewPushUpEntry(PushUpEntry entry)
         {
             lock (padlock)
@@ -682,7 +589,7 @@ namespace Sports_Exercise_Battle.Database
 
                 if (lastActiveTournament == null)
                 {
-                    InsertNewTournament();
+                    InsertNewTournament(); 
                     lastActiveTournament = GetLastActiveTournament();
                 }
 
@@ -778,41 +685,6 @@ namespace Sports_Exercise_Battle.Database
             }
         }
 
-        //public List<Tournament> GetAllTournaments()
-        //{
-        //    lock (padlock)
-        //    {
-        //        List<Tournament> tournaments = new List<Tournament>();
-        //        try
-        //        {
-        //            using (NpgsqlCommand cmd = new NpgsqlCommand("SELECT tournament_id, start_time, end_time FROM public.tournaments", connection))
-        //            {
-        //                using (NpgsqlDataReader dr = cmd.ExecuteReader())
-        //                {
-        //                    while (dr.Read())
-        //                    {
-        //                        Tournament tournament = new Tournament
-        //                        {
-        //                            TournamentId = (int)dr["tournament_id"],
-        //                            StartTime = (DateTime)dr["start_time"],
-        //                            EndTime = (DateTime)dr["end_time"]  
-        //                        };
-        //                        //if(tournaments.First(x => x.TournamentId == tournament.TournamentId)) CHECK IF ITS ALREADY EXIST
-        //                        tournaments.Add(tournament);
-        //                    }
-        //                    dr.Close();  // This line is technically not needed because of 'using', but left for clarity
-        //                }
-        //            }
-        //            return tournaments;
-        //        }
-        //        catch (PostgresException e)
-        //        {
-        //            Console.WriteLine(e.Message);
-        //            throw;  
-        //        }
-        //    }
-        //}
-
         public List<Tournament> GetAllTournaments()
         {
             lock (padlock)
@@ -822,7 +694,7 @@ namespace Sports_Exercise_Battle.Database
 
                 try
                 {
-                    using (NpgsqlCommand cmd = new NpgsqlCommand("SELECT tournament_id, start_time, end_time FROM public.tournaments", connection))
+                    using (NpgsqlCommand cmd = new NpgsqlCommand("SELECT tournament_id, start_time, end_time, is_calculated FROM public.tournaments", connection))
                     {
                         using (NpgsqlDataReader dr = cmd.ExecuteReader())
                         {
@@ -835,7 +707,8 @@ namespace Sports_Exercise_Battle.Database
                                     {
                                         TournamentId = tournamentId,
                                         StartTime = (DateTime)dr["start_time"],
-                                        EndTime = (DateTime)dr["end_time"]
+                                        EndTime = (DateTime)dr["end_time"],
+                                        Is_Calculated = (bool)dr["is_calculated"]
                                     };
                                     tournaments.Add(tournament);
                                     seenTournamentIds.Add(tournamentId); // Mark this ID as seen
@@ -844,7 +717,30 @@ namespace Sports_Exercise_Battle.Database
                             dr.Close();
                         }
                     }
+                    // After fetching, update the status
+                    foreach (var tournament in tournaments)
+                    {
+                        if (tournament.EndTime > DateTime.Now)
+                        {
+                            tournament.State = "still active";
+                        }
+                        else
+                        {
+                            tournament.State = $"ended at {tournament.EndTime}";
+                            if (tournament.Is_Calculated == false)
+                            {
+                                CalculateTournamentResultsAndUpdateElo(tournament.TournamentId);
+                                MarkTournamentAsCalculated(tournament.TournamentId);
+                            }
+                            else
+                            {
+                                Console.WriteLine("Tournament already calculated");
+                            }
+                           
+                        }
+                    }
                     return tournaments;
+                    
                 }
                 catch (PostgresException e)
                 {
@@ -854,34 +750,101 @@ namespace Sports_Exercise_Battle.Database
             }
         }
 
+    
+        public void CalculateTournamentResultsAndUpdateElo(int tournamentId)
+        {
+            lock (padlock)
+            {
+                if (connection == null)
+                {
+                    Console.WriteLine("Database not connected!");
+                    return;
+                }
+                
+                try
+                {
+                    using (NpgsqlCommand cmd = new NpgsqlCommand("SELECT username, SUM(counts) as total_counts FROM public.pushuphistory WHERE tournament_id = @p1 GROUP BY username ORDER BY total_counts DESC;", connection))
+                    {
+                        cmd.Parameters.Add(new NpgsqlParameter("p1", tournamentId));
+                        cmd.Prepare();
 
-        //public List<Tournament> GetAllTournaments()
-        //{
-        //    lock (padlock)
-        //    {
-        //        List<Tournament> tournaments = new List<Tournament>();
-        //        try
-        //        {
-        //            NpgsqlCommand cmd = new NpgsqlCommand("SELECT tournament_id, start_time, end_time FROM public.tournaments", connection);
-        //            cmd.Prepare();
-        //            NpgsqlDataReader dr = cmd.ExecuteReader();
-        //            while (dr.Read())
-        //            {
-        //                Tournament tournament = new Tournament();
-        //                tournament.TournamentId = (int)dr["tournament_id"];
-        //                tournament.StartTime = (DateTime)dr["start_time"];
-        //                tournament.EndTime = (DateTime)dr["end:time"];
-        //                tournaments.Add(tournament);
-        //            }
-        //            dr.Close();
-        //            return tournaments;
-        //        }
-        //        catch (PostgresException e)
-        //        {
-        //            Console.WriteLine(e.Message);
-        //            throw new Exception("No active tournament");
-        //        }
-        //    }
-        //}
+                        var userResults = new List<(string Username, int Counts)>();
+                        using (NpgsqlDataReader dr = cmd.ExecuteReader())
+                        {
+                            while (dr.Read())
+                            {
+                                userResults.Add((dr.GetString(0), dr.GetInt32(1)));
+                            }
+                        }
+                        // Assume that the first user is the winner and the last is the loser
+                        // Fetch current stats and update the ELO ratings accordingly
+                        foreach (var result in userResults)
+                        {
+                            UserStats currentStats = GetUserStatsByUsername(result.Username);
+                            if (currentStats != null)
+                            {
+                                if (result.Equals(userResults.First()))
+                                {
+                                    // Winner
+                                    currentStats.Elo += 2;
+                                    currentStats.Wins += 1;
+                                }
+                                else if (result.Equals(userResults.Last()))
+                                {
+                                    // Loser
+                                    currentStats.Elo -= 1;
+                                    currentStats.Losses += 1;
+                                }
+                                else
+                                {
+                                    // Draw
+                                    currentStats.Elo += 1;
+                                    currentStats.Draws += 1;
+                                }
+
+                                // Update the stats in the database
+                                UpdateUserStats(currentStats);
+                            }
+                        }
+                        MarkTournamentAsCalculated(tournamentId);
+                    }
+                }
+                catch (PostgresException e) 
+                {
+                    Console.WriteLine(e.Message);
+                    throw new Exception("Error calculating tournament results.");
+                }
+            }
+        }
+
+        public void MarkTournamentAsCalculated(int tournamentId)
+        {
+            lock (padlock)
+            {
+                if (connection == null)
+                {
+                    Console.WriteLine("Database not connected!");
+                    return;
+                }
+
+           
+
+                try
+                {
+                    using (NpgsqlCommand cmd = new NpgsqlCommand("UPDATE public.Tournaments SET is_calculated = TRUE WHERE tournament_id = @p1;", connection))
+                    {
+                        cmd.Parameters.Add(new NpgsqlParameter("p1", tournamentId));
+                        cmd.Prepare();
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                catch (PostgresException e)
+                {
+                    Console.WriteLine(e.Message);
+                    throw new Exception("Error marking tournament as calculated.");
+                }
+            }
+        }
+
     }
 }

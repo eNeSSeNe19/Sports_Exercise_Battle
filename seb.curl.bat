@@ -183,6 +183,13 @@ echo.
 echo.
 
 REM --------------------------------------------------
+
+REM --------------------------------------------------
+echo 13) add entry to history to test if its the same tournamnet
+curl -X POST http://localhost:10001/history --header "Content-Type: application/json" --header "Authorization: Basic kienboec-sebToken" -d "{\"Username\": \"kienboec\",  \"Count\": 11, \"DurationInSeconds\": 25}"
+echo.
+echo.
+
 echo end...
 
 
