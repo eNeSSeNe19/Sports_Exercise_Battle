@@ -45,6 +45,9 @@ namespace Sports_Exercise_Battle.Database
             }
         }
 
+
+
+
         public void Connect()
         {
             string config = AppDomain.CurrentDomain.BaseDirectory + "/dbConnection.json";
@@ -480,7 +483,56 @@ namespace Sports_Exercise_Battle.Database
             }
         }
 
-        public string? GetUserScoreboard() 
+        //public string? GetUserScoreboard() 
+        //{
+        //    lock (padlock)
+        //    {
+        //        if (connection != null && AuthorizedUser != null)
+        //        {
+        //            NpgsqlCommand cmd = new NpgsqlCommand("SELECT username, elo, wins, losses, draws, counts FROM public.\"userstats\" ORDER BY elo DESC;", connection);
+        //            cmd.Prepare();
+
+        //            NpgsqlDataReader dr = cmd.ExecuteReader();
+
+        //            List<UserStats> stats = new List<UserStats>();
+        //            while (dr.Read())
+        //            {
+        //                UserStats element = new UserStats();
+        //                element.Username = (string)dr[0];
+        //                element.Elo = (int)dr[1];
+        //                element.Wins = (int)dr[2];
+        //                element.Losses = (int)dr[3];
+        //                element.Draws = (int)dr[4];
+        //                element.Counts = (int)dr[5];
+
+        //                stats.Add(element);
+        //            }
+
+        //            dr.Close();
+
+        //            if (stats.Count > 0)
+        //            {
+        //                string json = System.Text.Json.JsonSerializer.Serialize(new
+        //                {
+        //                    scoreboard = stats
+        //                });
+        //                return json;
+        //            }
+        //            else
+        //            {
+        //                Console.WriteLine("Empty scoreboard");
+        //                return null;
+        //            }
+        //        }
+        //        else
+        //        {
+        //            Console.WriteLine("Database not connected");
+        //            return null;
+        //        }
+        //    }
+        //}
+
+        public List<UserStats>? GetUserScoreboard()
         {
             lock (padlock)
             {
@@ -490,36 +542,24 @@ namespace Sports_Exercise_Battle.Database
                     cmd.Prepare();
 
                     NpgsqlDataReader dr = cmd.ExecuteReader();
-
                     List<UserStats> stats = new List<UserStats>();
                     while (dr.Read())
                     {
-                        UserStats element = new UserStats();
-                        element.Username = (string)dr[0];
-                        element.Elo = (int)dr[1];
-                        element.Wins = (int)dr[2];
-                        element.Losses = (int)dr[3];
-                        element.Draws = (int)dr[4];
-                        element.Counts = (int)dr[5];
+                        UserStats element = new UserStats
+                        {
+                            Username = (string)dr[0],
+                            Elo = (int)dr[1],
+                            Wins = (int)dr[2],
+                            Losses = (int)dr[3],
+                            Draws = (int)dr[4],
+                            Counts = (int)dr[5]
+                        };
 
                         stats.Add(element);
                     }
 
                     dr.Close();
-
-                    if (stats.Count > 0)
-                    {
-                        string json = System.Text.Json.JsonSerializer.Serialize(new
-                        {
-                            scoreboard = stats
-                        });
-                        return json;
-                    }
-                    else
-                    {
-                        Console.WriteLine("Empty scoreboard");
-                        return null;
-                    }
+                    return stats.Count > 0 ? stats : null;
                 }
                 else
                 {
@@ -529,7 +569,7 @@ namespace Sports_Exercise_Battle.Database
             }
         }
 
-  
+
 
         public string GetUserPushUpHistory()
         {
@@ -559,7 +599,7 @@ namespace Sports_Exercise_Battle.Database
                                     Username = username,
                                     Count = dr2.GetInt32(dr2.GetOrdinal("counts")),
                                     EntryTime = dr2.GetDateTime(dr2.GetOrdinal("exercise_date")),
-                                    Duration = dr2.GetInt32(dr2.GetOrdinal("duration")) 
+                                    DurationInSeconds = dr2.GetInt32(dr2.GetOrdinal("duration")) 
                                 };
                                 history.Add(entry);
                             }
@@ -601,7 +641,7 @@ namespace Sports_Exercise_Battle.Database
                     NpgsqlCommand insertCmd = new NpgsqlCommand("INSERT INTO public.pushuphistory(username, counts, duration, exercise_date, tournament_id) VALUES(@p1, @p2, @p3, @p4, @p5);", connection);
                     insertCmd.Parameters.AddWithValue("p1", entry.Username);
                     insertCmd.Parameters.AddWithValue("p2", entry.Count);
-                    insertCmd.Parameters.AddWithValue("p3", entry.Duration);
+                    insertCmd.Parameters.AddWithValue("p3", entry.DurationInSeconds);
                     insertCmd.Parameters.AddWithValue("p4", DateTime.UtcNow); // Using UTC directly
                     insertCmd.Parameters.AddWithValue("p5", lastActiveTournament.TournamentId);
                     insertCmd.Transaction = transaction;
@@ -783,29 +823,39 @@ namespace Sports_Exercise_Battle.Database
                             UserStats currentStats = GetUserStatsByUsername(result.Username);
                             if (currentStats != null)
                             {
-                                if (result.Equals(userResults.First()))
+                                // If there's only one participant, they are the winner.
+                                if (userResults.Count == 1)
                                 {
-                                    // Winner
                                     currentStats.Elo += 2;
                                     currentStats.Wins += 1;
                                 }
-                                else if (result.Equals(userResults.Last()))
-                                {
-                                    // Loser
-                                    currentStats.Elo -= 1;
-                                    currentStats.Losses += 1;
-                                }
                                 else
                                 {
-                                    // Draw
-                                    currentStats.Elo += 1;
-                                    currentStats.Draws += 1;
+                                    if (result.Equals(userResults.First()))
+                                    {
+                                        // Winner
+                                        currentStats.Elo += 2;
+                                        currentStats.Wins += 1;
+                                    }
+                                    else if (result.Equals(userResults.Last()))
+                                    {
+                                        // Loser
+                                        currentStats.Elo -= 1;
+                                        currentStats.Losses += 1;
+                                    }
+                                    else
+                                    {
+                                        // For more than two participants, anyone not first is a loser
+                                        currentStats.Elo -= 1;
+                                        currentStats.Losses += 1;
+                                    }
                                 }
 
                                 // Update the stats in the database
                                 UpdateUserStats(currentStats);
                             }
                         }
+
                         MarkTournamentAsCalculated(tournamentId);
                     }
                 }

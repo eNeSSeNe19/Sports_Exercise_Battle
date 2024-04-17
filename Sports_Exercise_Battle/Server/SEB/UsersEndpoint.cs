@@ -284,27 +284,55 @@ namespace Sports_Exercise_Battle.Server.SEB
             }
         }
 
+        //public void GetUserScoreboard(HttpRequest rq, HttpResponse rs)
+        //{
+        //    try
+        //    {
+        //        if (db.Token == null)
+        //        {
+        //            return;
+        //        }
+        //        var userStats = db.GetUserScoreboard(); //db.Token
+        //        rs.ResponseCode = 201;
+        //        rs.ResponseMessage = "UserStats found successfully!";
+        //        rs.Content = userStats;
+        //        rs.Headers.Add("Content-Type", "application/json");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        rs.ResponseCode = 400;
+        //        rs.Content = $"No such UserStats!: {ex.Message}";
+        //        rs.Headers.Add("Content-Type", "application/json");
+        //    }
+        //}
+
         public void GetUserScoreboard(HttpRequest rq, HttpResponse rs)
         {
             try
             {
-                if (db.Token == null)
+                var userStats = db.GetUserScoreboard();
+                if (userStats != null)
                 {
-                    return;
+                    rs.ResponseCode = 201;
+                    rs.ResponseMessage = "UserStats found successfully!";
+                    rs.Content = FormatScoreboard(userStats);
+                    rs.Headers.Add("Content-Type", "text/plain");
                 }
-                var userStats = db.GetUserScoreboard(); //db.Token
-                rs.ResponseCode = 201;
-                rs.ResponseMessage = "UserStats found successfully!";
-                rs.Content = userStats;
-                rs.Headers.Add("Content-Type", "application/json");
+                else
+                {
+                    rs.ResponseCode = 204; // No Content
+                    rs.Content = "No scoreboard data available.";
+                    rs.Headers.Add("Content-Type", "text/plain");
+                }
             }
             catch (Exception ex)
             {
                 rs.ResponseCode = 400;
-                rs.Content = $"No such UserStats!: {ex.Message}";
+                rs.Content = $"Error retrieving user stats: {ex.Message}";
                 rs.Headers.Add("Content-Type", "application/json");
             }
         }
+
 
         public void GetUserHistory(HttpRequest rq, HttpResponse rs)
         {
@@ -342,7 +370,7 @@ namespace Sports_Exercise_Battle.Server.SEB
                 {
                     rs.ResponseCode = 201;
                     rs.ResponseMessage = "Tournaments found successfully!";
-                    string tournamentMessage = String.Join(", ", tournaments.Select(x => $"Tournament {x.TournamentId} started at {x.StartTime} State: {x.State} Participants: Counts: ").ToArray()); //empty stuffs have to be corrected/added
+                    string tournamentMessage = String.Join(", ", tournaments.Select(x => $"Tournament {x.TournamentId} started at {x.StartTime} State: {x.State}").ToArray()); //add more info if needed
                     rs.Content = tournamentMessage;
                     rs.Headers.Add("Content-Type", "application/json");
                 }
@@ -360,6 +388,19 @@ namespace Sports_Exercise_Battle.Server.SEB
                 rs.Headers.Add("Content-Type", "application/json");
             }
         }
+
+        public string FormatScoreboard(List<UserStats> userStatsList)
+        {
+            StringBuilder formattedScoreboard = new StringBuilder("Scoreboard:\n");
+
+            foreach (var stats in userStatsList.OrderByDescending(u => u.Elo))
+            {
+                formattedScoreboard.AppendLine($"{stats.Username} - Elo: {stats.Elo}, Wins: {stats.Wins}, Losses: {stats.Losses}, Draws: {stats.Draws}, Total Push-Ups: {stats.Counts}");
+            }
+
+            return formattedScoreboard.ToString();
+        }
+
 
     }
 }

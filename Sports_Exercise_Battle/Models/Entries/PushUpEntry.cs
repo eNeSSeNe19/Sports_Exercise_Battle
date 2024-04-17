@@ -10,7 +10,7 @@ namespace Sports_Exercise_Battle.Models.Entries
     {
         public string Username { get; set; }
         public int Count { get; set; }
-        public int Duration { get; set; }
+        public int DurationInSeconds { get; set; }
         public DateTime EntryTime { get; set; }
     }
 }

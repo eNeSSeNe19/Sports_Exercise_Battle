@@ -1,10 +1,7 @@
-BOUNDARIES FESTLEGEN (bsp. was passiert wenn es 3 teilnehmer oder nur 1 gibt?)
-
-PARTICIPANTS und COUNTS in Tournament info anzeigen
+BOUNDARIES FESTLEGEN (bsp. was passiert wenn es 3 teilnehmer oder nur 1 gibt?) -------------DIESES BEISPIEL DONE-----------offen für weitere
 
 LOG besser machen(optisch) (HISTORY, SCOREBOARD) ("message": format überall machen)
 
-server schauen wie log dort ist
-
 UNITTESTS schreiben
 
+MANDATORY UNIQUE FEATURE MISSING
