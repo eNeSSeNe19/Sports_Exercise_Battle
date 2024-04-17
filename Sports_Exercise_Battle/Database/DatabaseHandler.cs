@@ -28,6 +28,7 @@ namespace Sports_Exercise_Battle.Database
         public string? Token;
         public string? AuthorizedUser = null;
 
+        public const int K_FACTOR = 32;
 
         public static DatabaseHandler Instance
         {
@@ -483,54 +484,7 @@ namespace Sports_Exercise_Battle.Database
             }
         }
 
-        //public string? GetUserScoreboard() 
-        //{
-        //    lock (padlock)
-        //    {
-        //        if (connection != null && AuthorizedUser != null)
-        //        {
-        //            NpgsqlCommand cmd = new NpgsqlCommand("SELECT username, elo, wins, losses, draws, counts FROM public.\"userstats\" ORDER BY elo DESC;", connection);
-        //            cmd.Prepare();
-
-        //            NpgsqlDataReader dr = cmd.ExecuteReader();
-
-        //            List<UserStats> stats = new List<UserStats>();
-        //            while (dr.Read())
-        //            {
-        //                UserStats element = new UserStats();
-        //                element.Username = (string)dr[0];
-        //                element.Elo = (int)dr[1];
-        //                element.Wins = (int)dr[2];
-        //                element.Losses = (int)dr[3];
-        //                element.Draws = (int)dr[4];
-        //                element.Counts = (int)dr[5];
-
-        //                stats.Add(element);
-        //            }
-
-        //            dr.Close();
-
-        //            if (stats.Count > 0)
-        //            {
-        //                string json = System.Text.Json.JsonSerializer.Serialize(new
-        //                {
-        //                    scoreboard = stats
-        //                });
-        //                return json;
-        //            }
-        //            else
-        //            {
-        //                Console.WriteLine("Empty scoreboard");
-        //                return null;
-        //            }
-        //        }
-        //        else
-        //        {
-        //            Console.WriteLine("Database not connected");
-        //            return null;
-        //        }
-        //    }
-        //}
+        
 
         public List<UserStats>? GetUserScoreboard()
         {
@@ -568,7 +522,6 @@ namespace Sports_Exercise_Battle.Database
                 }
             }
         }
-
 
 
         public string GetUserPushUpHistory()
@@ -790,7 +743,7 @@ namespace Sports_Exercise_Battle.Database
             }
         }
 
-    
+
         public void CalculateTournamentResultsAndUpdateElo(int tournamentId)
         {
             lock (padlock)
@@ -800,7 +753,7 @@ namespace Sports_Exercise_Battle.Database
                     Console.WriteLine("Database not connected!");
                     return;
                 }
-                
+
                 try
                 {
                     using (NpgsqlCommand cmd = new NpgsqlCommand("SELECT username, SUM(counts) as total_counts FROM public.pushuphistory WHERE tournament_id = @p1 GROUP BY username ORDER BY total_counts DESC;", connection))
@@ -816,56 +769,42 @@ namespace Sports_Exercise_Battle.Database
                                 userResults.Add((dr.GetString(0), dr.GetInt32(1)));
                             }
                         }
-                        // Assume that the first user is the winner and the last is the loser
-                        // Fetch current stats and update the ELO ratings accordingly
-                        foreach (var result in userResults)
-                        {
-                            UserStats currentStats = GetUserStatsByUsername(result.Username);
-                            if (currentStats != null)
-                            {
-                                // If there's only one participant, they are the winner.
-                                if (userResults.Count == 1)
-                                {
-                                    currentStats.Elo += 2;
-                                    currentStats.Wins += 1;
-                                }
-                                else
-                                {
-                                    if (result.Equals(userResults.First()))
-                                    {
-                                        // Winner
-                                        currentStats.Elo += 2;
-                                        currentStats.Wins += 1;
-                                    }
-                                    else if (result.Equals(userResults.Last()))
-                                    {
-                                        // Loser
-                                        currentStats.Elo -= 1;
-                                        currentStats.Losses += 1;
-                                    }
-                                    else
-                                    {
-                                        // For more than two participants, anyone not first is a loser
-                                        currentStats.Elo -= 1;
-                                        currentStats.Losses += 1;
-                                    }
-                                }
 
-                                // Update the stats in the database
-                                UpdateUserStats(currentStats);
+                        // Fetch current stats for all participants
+                        var userStatsList = userResults.Select(result => GetUserStatsByUsername(result.Username)).ToList();
+                        int averageOpponentElo = (int)userStatsList.Average(us => us.Elo);
+
+                        foreach (var userStats in userStatsList)
+                        {
+                            double expectedScore = CalculateExpectedScore(userStats.Elo, averageOpponentElo);
+                            double actualScore = DetermineActualScore(userStats.Username, userResults); // Implement this method based on actual results
+                            userStats.Elo = CalculateNewElo(userStats.Elo, actualScore, expectedScore);
+                            if (actualScore == 1)
+                            {
+                                userStats.Wins++;
                             }
+                            else if (actualScore == 0)
+                            {
+                                userStats.Losses++;
+                            }
+                            else if (actualScore == 0.5)
+                            {
+                                userStats.Draws++;
+                            }
+                            UpdateUserStats(userStats);
                         }
 
                         MarkTournamentAsCalculated(tournamentId);
                     }
                 }
-                catch (PostgresException e) 
+                catch (PostgresException e)
                 {
                     Console.WriteLine(e.Message);
                     throw new Exception("Error calculating tournament results.");
                 }
             }
         }
+
 
         public void MarkTournamentAsCalculated(int tournamentId)
         {
@@ -895,6 +834,42 @@ namespace Sports_Exercise_Battle.Database
                 }
             }
         }
+
+        public double CalculateExpectedScore(int playerRating, int opponentRating)
+        {
+            return 1 / (1 + Math.Pow(10, (opponentRating - playerRating) / 400.0));
+        }
+
+        public int CalculateNewElo(int currentElo, double actualScore, double expectedScore)
+        {
+            return currentElo + (int)(K_FACTOR * (actualScore - expectedScore));
+        }
+
+
+        private double DetermineActualScore(string username, List<(string Username, int Counts)> userResults)
+        {
+            // Find the user's result.
+            var userResult = userResults.Find(ur => ur.Username == username);
+
+            // Find all unique counts.
+            var uniqueCounts = userResults.Select(ur => ur.Counts).Distinct().ToList();
+
+            // Determine ranks by count.
+            var rankedResults = userResults
+                .GroupBy(ur => ur.Counts)
+                .Select(grp => new { Count = grp.Key, Users = grp.Select(g => g.Username).ToList() })
+                .OrderByDescending(r => r.Count)
+                .ToList();
+
+            // Determine if there is a tie at the user's count level.
+            var userRank = rankedResults.FindIndex(r => r.Users.Contains(username));
+            var isTie = rankedResults[userRank].Users.Count > 1;
+
+            // Return the actual score based on the rank and whether there's a tie.
+            if (userRank == 0) return isTie ? 0.5 : 1; // Winner or draw if there's a tie for the first place
+            return 0; // Loser if not in the first place or part of a tie for the first place
+        }
+
 
     }
 }

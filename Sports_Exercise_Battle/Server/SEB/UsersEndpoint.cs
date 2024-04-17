@@ -9,12 +9,14 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Sports_Exercise_Battle.Database;
 using Sports_Exercise_Battle.Models.Entries;
+using System.Net;
 
 namespace Sports_Exercise_Battle.Server.SEB
 {
     public class UsersEndpoint : IHttpEndpoint
     {
         DatabaseHandler db = DatabaseHandler.Instance;
+
         public bool HandleRequest(HttpRequest rq, HttpResponse rs)
         {
             if (rq.Headers.ContainsKey("Authorization"))
