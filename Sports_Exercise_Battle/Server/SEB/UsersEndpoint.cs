@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using Sports_Exercise_Battle.Database;
 using Sports_Exercise_Battle.Models.Entries;
 using System.Net;
+using Npgsql;
+using System.Data;
 
 namespace Sports_Exercise_Battle.Server.SEB
 {
@@ -286,27 +288,6 @@ namespace Sports_Exercise_Battle.Server.SEB
             }
         }
 
-        //public void GetUserScoreboard(HttpRequest rq, HttpResponse rs)
-        //{
-        //    try
-        //    {
-        //        if (db.Token == null)
-        //        {
-        //            return;
-        //        }
-        //        var userStats = db.GetUserScoreboard(); //db.Token
-        //        rs.ResponseCode = 201;
-        //        rs.ResponseMessage = "UserStats found successfully!";
-        //        rs.Content = userStats;
-        //        rs.Headers.Add("Content-Type", "application/json");
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        rs.ResponseCode = 400;
-        //        rs.Content = $"No such UserStats!: {ex.Message}";
-        //        rs.Headers.Add("Content-Type", "application/json");
-        //    }
-        //}
 
         public void GetUserScoreboard(HttpRequest rq, HttpResponse rs)
         {
@@ -367,13 +348,34 @@ namespace Sports_Exercise_Battle.Server.SEB
         {
             try
             {
-                var tournaments = db.GetAllTournaments(); //probably because there are 2 GETS in the curl for tournaments // deleted one
+                var tournaments = db.GetAllTournaments();
                 if (tournaments.Count > 0)
                 {
+                    List<string> tournamentDetails = new List<string>();
+
+                    foreach (var tournament in tournaments)
+                    {
+                        // Get the participants and their entry counts for each tournament
+                        var participantEntries = db.GetPushUpEntriesByTournamentId(tournament.TournamentId);
+
+                        // Group entries by username and sum the counts
+                        var participantSummary = participantEntries
+                            .GroupBy(pe => pe.Username)
+                            .Select(g => new { Username = g.Key, TotalCount = g.Sum(pe => pe.Count) })
+                            .ToList();
+
+                        // Format the participant details
+                        var participantDetails = participantSummary.Select(ps => $"{ps.Username} - {ps.TotalCount} push-ups").ToList();
+
+                        // Create a message for this tournament
+                        string tournamentMessage = $"Tournament {tournament.TournamentId} started at {tournament.StartTime}, State: {tournament.State}, Participants: {string.Join(", ", participantDetails)}";
+
+                        tournamentDetails.Add(tournamentMessage);
+                    }
+
                     rs.ResponseCode = 201;
                     rs.ResponseMessage = "Tournaments found successfully!";
-                    string tournamentMessage = String.Join(", ", tournaments.Select(x => $"Tournament {x.TournamentId} started at {x.StartTime} State: {x.State}").ToArray()); //add more info if needed
-                    rs.Content = tournamentMessage;
+                    rs.Content = string.Join("\n", tournamentDetails);
                     rs.Headers.Add("Content-Type", "application/json");
                 }
                 else

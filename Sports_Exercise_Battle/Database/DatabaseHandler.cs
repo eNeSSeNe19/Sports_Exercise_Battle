@@ -28,6 +28,7 @@ namespace Sports_Exercise_Battle.Database
         public string? Token;
         public string? AuthorizedUser = null;
 
+
         public const int K_FACTOR = 32;
 
         public static DatabaseHandler Instance
@@ -175,7 +176,6 @@ namespace Sports_Exercise_Battle.Database
                 }
             }
         }
-
         public int UpdateUser(User user)
         {
             lock (padlock)
@@ -484,7 +484,6 @@ namespace Sports_Exercise_Battle.Database
             }
         }
 
-        
 
         public List<UserStats>? GetUserScoreboard()
         {
@@ -568,6 +567,45 @@ namespace Sports_Exercise_Battle.Database
                 }
             }
         }
+
+        public List<PushUpEntry> GetPushUpEntriesByTournamentId(int tournamentId)
+        {
+            lock (padlock)
+            {
+                if (connection != null)
+                {
+                    List<PushUpEntry> entries = new List<PushUpEntry>();
+
+                    using (var cmd = new NpgsqlCommand("SELECT username, counts, exercise_date, duration FROM public.\"pushuphistory\" WHERE tournament_id = @tournamentId;", connection))
+                    {
+                        cmd.Parameters.AddWithValue("tournamentId", tournamentId);
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                PushUpEntry entry = new PushUpEntry
+                                {
+                                    Username = reader.GetString(reader.GetOrdinal("username")),
+                                    Count = reader.GetInt32(reader.GetOrdinal("counts")),
+                                    EntryTime = reader.GetDateTime(reader.GetOrdinal("exercise_date")),
+                                    DurationInSeconds = reader.GetInt32(reader.GetOrdinal("duration"))
+                                };
+                                entries.Add(entry);
+                            }
+                        }
+                    }
+
+                    return entries;
+                }
+                else
+                {
+                    Console.WriteLine("Database not connected!");
+                    return new List<PushUpEntry>(); // return an empty list instead of null
+                }
+            }
+        }
+
 
         public void InsertNewPushUpEntry(PushUpEntry entry)
         {
@@ -777,7 +815,7 @@ namespace Sports_Exercise_Battle.Database
                         foreach (var userStats in userStatsList)
                         {
                             double expectedScore = CalculateExpectedScore(userStats.Elo, averageOpponentElo);
-                            double actualScore = DetermineActualScore(userStats.Username, userResults); // Implement this method based on actual results
+                            double actualScore = DetermineActualScore(userStats.Username, userResults); 
                             userStats.Elo = CalculateNewElo(userStats.Elo, actualScore, expectedScore);
                             if (actualScore == 1)
                             {

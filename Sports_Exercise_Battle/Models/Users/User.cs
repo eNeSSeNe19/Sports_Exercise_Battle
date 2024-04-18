@@ -29,11 +29,6 @@ namespace Sports_Exercise_Battle.Models.Users
 
        
 
-        public UserStats Stats
-        {
-            get;
-            private set;
-        }
 
     }
 }
