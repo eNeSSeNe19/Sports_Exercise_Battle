@@ -1,9 +1,0 @@
-BOUNDARIES FESTLEGEN (bsp. was passiert wenn es 3 teilnehmer oder nur 1 gibt?) -------------DIESES BEISPIEL DONE-----------offen für weitere
-
-TOURNAMENTS participant anzeigen mit counts...FERTIG
-
-LOG besser machen(optisch) ("message": format überall machen)...FERTIG
-
-UNITTESTS schreiben
-
-MANDATORY UNIQUE FEATURE MISSING .................DONE

@@ -256,7 +256,7 @@ namespace Sports_Exercise_Battle.Server.SEB
         {
             try
             {
-                db.GetUserByID(rq.Path[2]);
+                db.GetUserByUsername(rq.Path[2]);
                 rs.ResponseCode = 201;
                 rs.ResponseMessage = "Found User!";
                 rs.Content = JsonSerializer.Serialize(new { message = "User found successfully!" });
